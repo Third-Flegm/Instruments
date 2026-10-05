@@ -1,78 +1,251 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
+    <title>Python Web Audio Synthesizer</title>
     <!-- Load the Brython engine from a CDN -->
     <script type="text/javascript" src="https://cloudflare.com"></script>
     <script type="text/javascript" src="https://cloudflare.com"></script>
     
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding-top: 50px; }
-        .keyboard { display: flex; justify-content: center; margin-top: 20px; }
-        .key { width: 60px; height: 200px; border: 1px solid #333; margin: 5px; background: white; 
-               box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; border-radius: 0 0 5px 5px;
-               display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; font-weight: bold;}
-        .key:active { background: #e0e0e0; transform: translateY(2px); box-shadow: none; }
+        :root {
+            --bg-color: #1a1a1a;
+            --container-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --accent-color: #00adb5;
+        }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            background: var(--bg-color); 
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px; 
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        h1 { margin-top: 0; font-size: 2.2rem; color: var(--accent-color); }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            align-items: center;
+        }
+        select {
+            padding: 8px 12px;
+            background: #444;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        /* Visualizer Meter */
+        .visualizer-container {
+            width: 100%;
+            height: 12px;
+            background: #111;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+        .visualizer-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00adb5, #00ffcc);
+            transition: width 0.05s ease-out;
+        }
+        /* Keyboard Layout */
+        .keyboard { 
+            display: flex; 
+            justify-content: center; 
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        .key { 
+            width: 55px; 
+            height: 180px; 
+            border: 1px solid #111; 
+            margin: 0 2px; 
+            background: #fdfdfd; 
+            color: #333;
+            cursor: pointer; 
+            border-radius: 0 0 5px 5px;
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: flex-end; 
+            padding-bottom: 15px; 
+            box-sizing: border-box;
+            user-select: none;
+            transition: background 0.1s, transform 0.05s;
+        }
+        .key .note-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
+        .key .kbd-hint { font-size: 0.75rem; color: #888; background: #eee; padding: 2px 6px; border-radius: 3px; }
+        
+        /* Active States */
+        .key.active { 
+            background: var(--accent-color) !important; 
+            color: white !important;
+            transform: translateY(3px); 
+            box-shadow: none; 
+        }
+        .key.active .kbd-hint { background: rgba(210, 210, 210, 0.3); color: #fff; }
+        
+        .instructions { color: #aaa; margin-top: 20px; font-size: 0.9rem; }
     </style>
 </head>
 
-<!-- onload="brython()" initializes the Python engine -->
 <body onload="brython()">
 
-    <h1>Python Web Synthesizer</h1>
-    <p>Click a key to play a note!</p>
+    <div class="container">
+        <h1>Python Web Synthesizer</h1>
+        <p>Play using your mouse clicks or computer keyboard buttons!</p>
 
-    <div class="keyboard">
-        <div class="key" id="C">C</div>
-        <div class="key" id="E">E</div>
-        <div class="key" id="G">G</div>
+        <!-- Instrument Settings -->
+        <div class="controls">
+            <label for="wave-type">Waveform Shape: </label>
+            <select id="wave-type">
+                <option value="sine">Sine (Smooth)</option>
+                <option value="triangle">Triangle (Soft/Flute)</option>
+                <option value="sawtooth">Sawtooth (Buzz/Synth)</option>
+                <option value="square">Square (Retro/8-Bit)</option>
+            </select>
+        </div>
+
+        <!-- Volume Visualizer Bar -->
+        <div class="visualizer-container">
+            <div id="v-bar" class="visualizer-bar"></div>
+        </div>
+
+        <!-- Musical Keys -->
+        <div class="keyboard" id="piano-keyboard">
+            <div class="key" id="note-C" data-note="C"><span class="note-name">C</span><span class="kbd-hint">A</span></div>
+            <div class="key" id="note-D" data-note="D"><span class="note-name">D</span><span class="kbd-hint">S</span></div>
+            <div class="key" id="note-E" data-note="E"><span class="note-name">E</span><span class="kbd-hint">D</span></div>
+            <div class="key" id="note-F" data-note="F"><span class="note-name">F</span><span class="kbd-hint">F</span></div>
+            <div class="key" id="note-G" data-note="G"><span class="note-name">G</span><span class="kbd-hint">G</span></div>
+            <div class="key" id="note-A" data-note="A"><span class="note-name">A</span><span class="kbd-hint">H</span></div>
+            <div class="key" id="note-B" data-note="B"><span class="note-name">B</span><span class="kbd-hint">J</span></div>
+            <div class="key" id="note-C2" data-note="C2"><span class="note-name">C2</span><span class="kbd-hint">K</span></div>
+        </div>
+
+        <div class="instructions">
+            Keyboard Map: [A]=C | [S]=D | [D]=E | [F]=F | [G]=G | [H]=A | [J]=B | [K]=C2
+        </div>
     </div>
 
-    <!-- Write your Python code directly here! -->
+    <!-- Brython Core Logic Execution -->
     <script type="text/python">
-        from browser import document, window
+        from browser import document, window, timer
 
-        # Initialize the browser's native Audio Context via Python
+        # 1. Setup the Web Audio System API via the JavaScript Window Proxy
         AudioContext = window.AudioContext or window.webkitAudioContext
         ctx = AudioContext.new()
 
-        # Frequencies mapping for the notes
+        # 2. Map notes to frequencies & physical computer keyboard characters
         frequencies = {
-            "C": 261.63,
-            "E": 329.63,
-            "G": 392.00
+            "C": 261.63, "D": 293.66, "E": 329.63, "F": 349.23,
+            "G": 392.00, "A": 440.00, "B": 493.88, "C2": 523.25
         }
 
-        def play_note(event):
-            # Resume audio context if the browser paused it
+        key_mappings = {
+            "a": "C", "s": "D", "d": "E", "f": "F",
+            "g": "G", "h": "A", "j": "B", "k": "C2"
+        }
+
+        # Keep track of active keys to prevent key-holding stutter loops
+        pressed_keys = set()
+
+        def reset_visualizer():
+            """Smoothly drop the visualizer bar graph down to zero."""
+            document["v-bar"].style.width = "0%"
+
+        def trigger_audio(note_name):
+            """Generates the frequency tone synthesizer engine signal."""
             if ctx.state == "suspended":
                 ctx.resume()
-                
-            # Get the ID of the clicked key (C, E, or G)
-            note = event.target.id
-            freq = frequencies[note]
-            
-            # Create a synthesizer oscillator (sound generator)
+
+            freq = frequencies[note_name]
+            wave_selection = document["wave-type"].value
+
+            # Setup the audio signal chain
             osc = ctx.createOscillator()
             gain = ctx.createGain()
             
-            osc.type = "sine"
+            osc.type = wave_selection
             osc.frequency.value = freq
             
-            # Connect the oscillator to the speakers
             osc.connect(gain)
             gain.connect(ctx.destination)
             
-            # Play a short 0.4 second burst of sound
+            # Sound envelope timing (attack and decay fadeout)
             now = ctx.currentTime
             osc.start(now)
-            gain.gain.setValueAtTime(0.5, now)
-            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.4)
-            osc.stop(now + 0.4)
+            gain.gain.setValueAtTime(0.4, now)
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.5)
+            osc.stop(now + 0.5)
 
-        # Bind the click event of each HTML key element to our Python function
-        for note in frequencies:
-            document[note].bind("click", play_note)
+            # Flash visualizer meter spike up
+            document["v-bar"].style.width = "85%"
+            timer.set_timeout(reset_visualizer, 100)
+
+        # --- Event Handling Rules ---
+
+        def mouse_click_play(event):
+            """Finds which note div element structural component path was clicked."""
+            target = event.target
+            # Bubble up to discover the target note node identifier if interior spans are clicked
+            while target and not target.classList.contains("key"):
+                target = target.parent
+            if target:
+                note = target.attrs["data-note"]
+                # Add UI lighting active class style property
+                target.classList.add("active")
+                timer.set_timeout(lambda: target.classList.remove("active"), 150)
+                trigger_audio(note)
+
+        def keyboard_down_play(event):
+            """Evaluates real-time desktop physical keyboard keystrokes."""
+            key_pressed = event.key.lower()
+            if key_pressed in key_mappings and key_pressed not in pressed_keys:
+                pressed_keys.add(key_pressed)
+                note = key_mappings[key_pressed]
+                
+                # Fetch target note elements to attach style active classes
+                element_id = f"note-{note}"
+                document[element_id].classList.add("active")
+                trigger_audio(note)
+
+        def keyboard_up_stop(event):
+            """Removes active flags when a key press is released."""
+            key_released = event.key.lower()
+            if key_released in key_mappings:
+                pressed_keys.discard(key_released)
+                note = key_mappings[key_released]
+                element_id = f"note-{note}"
+                document[element_id].classList.remove("active")
+
+        # --- Initial Bindings Configuration Setup ---
+        
+        # Link every individual visual key structural element to mouse clicks
+        for note_id in frequencies.keys():
+            element_id = f"note-{note_id}"
+            document[element_id].bind("mousedown", mouse_click_play)
+
+        # Bind operational events globally down onto the browser body object structure
+        document.bind("keydown", keyboard_down_play)
+        document.bind("keyup", keyboard_up_stop)
     </script>
 </body>
 </html>
