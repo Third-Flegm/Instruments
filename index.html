@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- Load the Brython engine from a CDN -->
+    <script type="text/javascript" src="https://cloudflare.com"></script>
+    <script type="text/javascript" src="https://cloudflare.com"></script>
+    
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding-top: 50px; }
+        .keyboard { display: flex; justify-content: center; margin-top: 20px; }
+        .key { width: 60px; height: 200px; border: 1px solid #333; margin: 5px; background: white; 
+               box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; border-radius: 0 0 5px 5px;
+               display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; font-weight: bold;}
+        .key:active { background: #e0e0e0; transform: translateY(2px); box-shadow: none; }
+    </style>
+</head>
+
+<!-- onload="brython()" initializes the Python engine -->
+<body onload="brython()">
+
+    <h1>Python Web Synthesizer</h1>
+    <p>Click a key to play a note!</p>
+
+    <div class="keyboard">
+        <div class="key" id="C">C</div>
+        <div class="key" id="E">E</div>
+        <div class="key" id="G">G</div>
+    </div>
+
+    <!-- Write your Python code directly here! -->
+    <script type="text/python">
+        from browser import document, window
+
+        # Initialize the browser's native Audio Context via Python
+        AudioContext = window.AudioContext or window.webkitAudioContext
+        ctx = AudioContext.new()
+
+        # Frequencies mapping for the notes
+        frequencies = {
+            "C": 261.63,
+            "E": 329.63,
+            "G": 392.00
+        }
+
+        def play_note(event):
+            # Resume audio context if the browser paused it
+            if ctx.state == "suspended":
+                ctx.resume()
+                
+            # Get the ID of the clicked key (C, E, or G)
+            note = event.target.id
+            freq = frequencies[note]
+            
+            # Create a synthesizer oscillator (sound generator)
+            osc = ctx.createOscillator()
+            gain = ctx.createGain()
+            
+            osc.type = "sine"
+            osc.frequency.value = freq
+            
+            # Connect the oscillator to the speakers
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            
+            # Play a short 0.4 second burst of sound
+            now = ctx.currentTime
+            osc.start(now)
+            gain.gain.setValueAtTime(0.5, now)
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.4)
+            osc.stop(now + 0.4)
+
+        # Bind the click event of each HTML key element to our Python function
+        for note in frequencies:
+            document[note].bind("click", play_note)
+    </script>
+</body>
+</html>
