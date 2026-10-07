@@ -1,251 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Python Web Audio Synthesizer</title>
-    <!-- Load the Brython engine from a CDN -->
-    <script type="text/javascript" src="https://cloudflare.com"></script>
-    <script type="text/javascript" src="https://cloudflare.com"></script>
-    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dark Mode Synth Piano</title>
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --container-bg: #2d2d2d;
-            --text-color: #ffffff;
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
             --accent-color: #00adb5;
+            --text-color: #eeeeee;
+            --white-key: #ffffff;
+            --white-key-active: #b0bec5;
+            --black-key: #303841;
+            --black-key-active: #00adb5;
         }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            text-align: center; 
-            background: var(--bg-color); 
-            color: var(--text-color);
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 40px 20px; 
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background: var(--container-bg);
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            padding: 20px;
+            overflow: hidden;
         }
-        h1 { margin-top: 0; font-size: 2.2rem; color: var(--accent-color); }
+
+        /* Top Control Panel */
         .controls {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            padding: 15px 25px;
+            border-radius: 12px;
+            justify-content: space-between;
             align-items: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
-        select {
-            padding: 8px 12px;
-            background: #444;
-            color: #fff;
-            border: 1px solid #555;
-            border-radius: 5px;
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+        }
+
+        select, button {
+            background: #333;
+            color: var(--text-color);
+            border: 1px solid #444;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
             cursor: pointer;
-            font-size: 1rem;
         }
-        /* Visualizer Meter */
+
+        button:active, select:focus {
+            border-color: var(--accent-color);
+        }
+
+        #start-btn {
+            background: var(--accent-color);
+            color: #fff;
+            font-weight: bold;
+            border: none;
+        }
+
+        /* Oscilloscope Visualizer */
         .visualizer-container {
             width: 100%;
-            height: 12px;
-            background: #111;
-            border-radius: 6px;
-            margin-bottom: 30px;
+            max-width: 900px;
+            flex-grow: 1;
+            margin: 20px 0;
+            background: #000;
+            border-radius: 12px;
+            border: 1px solid #222;
             overflow: hidden;
-            border: 1px solid #444;
+            position: relative;
         }
-        .visualizer-bar {
-            width: 0%;
+
+        canvas {
+            width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, #00adb5, #00ffcc);
-            transition: width 0.05s ease-out;
+            display: block;
         }
-        /* Keyboard Layout */
-        .keyboard { 
-            display: flex; 
-            justify-content: center; 
-            background: #111;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+
+        /* Piano Keyboard */
+        .keyboard {
+            display: flex;
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 250px;
+            background: #000;
+            padding: 5px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .key { 
-            width: 55px; 
-            height: 180px; 
-            border: 1px solid #111; 
-            margin: 0 2px; 
-            background: #fdfdfd; 
-            color: #333;
-            cursor: pointer; 
-            border-radius: 0 0 5px 5px;
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: flex-end; 
-            padding-bottom: 15px; 
-            box-sizing: border-box;
-            user-select: none;
-            transition: background 0.1s, transform 0.05s;
+
+        .key {
+            position: relative;
+            flex: 1;
+            height: 100%;
+            border-radius: 0 0 6px 6px;
+            cursor: pointer;
         }
-        .key .note-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
-        .key .kbd-hint { font-size: 0.75rem; color: #888; background: #eee; padding: 2px 6px; border-radius: 3px; }
-        
-        /* Active States */
-        .key.active { 
-            background: var(--accent-color) !important; 
-            color: white !important;
-            transform: translateY(3px); 
-            box-shadow: none; 
+
+        .key.white {
+            background: var(--white-key);
+            border: 1px solid #ccc;
+            z-index: 1;
         }
-        .key.active .kbd-hint { background: rgba(210, 210, 210, 0.3); color: #fff; }
-        
-        .instructions { color: #aaa; margin-top: 20px; font-size: 0.9rem; }
+
+        .key.white.active {
+            background: var(--white-key-active);
+            height: 99%;
+        }
+
+        .key.black {
+            background: var(--black-key);
+            height: 60%;
+            width: 6%;
+            margin-left: -3%;
+            margin-right: -3%;
+            z-index: 2;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .key.black.active {
+            background: var(--black-key-active);
+        }
     </style>
 </head>
+<body>
 
-<body onload="brython()">
-
-    <div class="container">
-        <h1>Python Web Synthesizer</h1>
-        <p>Play using your mouse clicks or computer keyboard buttons!</p>
-
-        <!-- Instrument Settings -->
-        <div class="controls">
-            <label for="wave-type">Waveform Shape: </label>
-            <select id="wave-type">
-                <option value="sine">Sine (Smooth)</option>
-                <option value="triangle">Triangle (Soft/Flute)</option>
-                <option value="sawtooth">Sawtooth (Buzz/Synth)</option>
-                <option value="square">Square (Retro/8-Bit)</option>
+    <div class="controls">
+        <div class="control-group">
+            <label>Audio Initialization</label>
+            <button id="start-btn">Start Audio Context</button>
+        </div>
+        <div class="control-group">
+            <label>Waveform Type</label>
+            <select id="waveform-select">
+                <option value="sine">Sine</option>
+                <option value="sawtooth">Sawtooth</option>
+                <option value="square">Square</option>
+                <option value="triangle">Triangle</option>
             </select>
-        </div>
-
-        <!-- Volume Visualizer Bar -->
-        <div class="visualizer-container">
-            <div id="v-bar" class="visualizer-bar"></div>
-        </div>
-
-        <!-- Musical Keys -->
-        <div class="keyboard" id="piano-keyboard">
-            <div class="key" id="note-C" data-note="C"><span class="note-name">C</span><span class="kbd-hint">A</span></div>
-            <div class="key" id="note-D" data-note="D"><span class="note-name">D</span><span class="kbd-hint">S</span></div>
-            <div class="key" id="note-E" data-note="E"><span class="note-name">E</span><span class="kbd-hint">D</span></div>
-            <div class="key" id="note-F" data-note="F"><span class="note-name">F</span><span class="kbd-hint">F</span></div>
-            <div class="key" id="note-G" data-note="G"><span class="note-name">G</span><span class="kbd-hint">G</span></div>
-            <div class="key" id="note-A" data-note="A"><span class="note-name">A</span><span class="kbd-hint">H</span></div>
-            <div class="key" id="note-B" data-note="B"><span class="note-name">B</span><span class="kbd-hint">J</span></div>
-            <div class="key" id="note-C2" data-note="C2"><span class="note-name">C2</span><span class="kbd-hint">K</span></div>
-        </div>
-
-        <div class="instructions">
-            Keyboard Map: [A]=C | [S]=D | [D]=E | [F]=F | [G]=G | [H]=A | [J]=B | [K]=C2
         </div>
     </div>
 
-    <!-- Brython Core Logic Execution -->
-    <script type="text/python">
-        from browser import document, window, timer
+    <div class="visualizer-container">
+        <canvas id="oscilloscope"></canvas>
+    </div>
 
-        # 1. Setup the Web Audio System API via the JavaScript Window Proxy
-        AudioContext = window.AudioContext or window.webkitAudioContext
-        ctx = AudioContext.new()
+    <div class="keyboard" id="keyboard">
+        <!-- Piano Keys (1 Full Octave + C Crossover for demo) -->
+        <div class="key white" data-note="261.63"></div> <!-- C4 -->
+        <div class="key black" data-note="277.18"></div> <!-- C#4 -->
+        <div class="key white" data-note="293.66"></div> <!-- D4 -->
+        <div class="key black" data-note="311.13"></div> <!-- D#4 -->
+        <div class="key white" data-note="329.63"></div> <!-- E4 -->
+        <div class="key white" data-note="349.23"></div> <!-- F4 -->
+        <div class="key black" data-note="369.99"></div> <!-- F#4 -->
+        <div class="key white" data-note="392.00"></div> <!-- G4 -->
+        <div class="key black" data-note="415.30"></div> <!-- G#4 -->
+        <div class="key white" data-note="440.00"></div> <!-- A4 -->
+        <div class="key black" data-note="466.16"></div> <!-- A#4 -->
+        <div class="key white" data-note="493.88"></div> <!-- B4 -->
+        <div class="key white" data-note="523.25"></div> <!-- C5 -->
+    </div>
 
-        # 2. Map notes to frequencies & physical computer keyboard characters
-        frequencies = {
-            "C": 261.63, "D": 293.66, "E": 329.63, "F": 349.23,
-            "G": 392.00, "A": 440.00, "B": 493.88, "C2": 523.25
+    <script>
+        // Audio Setup
+        let audioCtx = null;
+        let analyser = null;
+        let currentWaveform = 'sine';
+        const activeOscillators = {};
+
+        const startBtn = document.getElementById('start-btn');
+        const waveformSelect = document.getElementById('waveform-select');
+        const keyboard = document.getElementById('keyboard');
+        const canvas = document.getElementById('oscilloscope');
+        const canvasCtx = canvas.getContext('2d');
+
+        // Resize Canvas dynamically
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth * window.devicePixelRatio;
+            canvas.height = canvas.clientHeight * window.devicePixelRatio;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Initialize Web Audio
+        startBtn.addEventListener('click', () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.connect(audioCtx.destination);
+                startBtn.textContent = "Audio Active";
+                startBtn.style.background = "#28a745";
+                drawVisualizer();
+            } else if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+
+        waveformSelect.addEventListener('change', (e) => {
+            currentWaveform = e.target.value;
+        });
+
+        // Play Note function
+        function playNote(frequency) {
+            if (!audioCtx) return;
+            
+            // If already playing, do nothing
+            if (activeOscillators[frequency]) return;
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = currentWaveform;
+            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            // Soft envelope to prevent severe clicks
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.02);
+
+            osc.connect(gainNode);
+            gainNode.connect(analyser);
+            osc.start();
+
+            activeOscillators[frequency] = { osc, gainNode };
         }
 
-        key_mappings = {
-            "a": "C", "s": "D", "d": "E", "f": "F",
-            "g": "G", "h": "A", "j": "B", "k": "C2"
-        }
-
-        # Keep track of active keys to prevent key-holding stutter loops
-        pressed_keys = set()
-
-        def reset_visualizer():
-            """Smoothly drop the visualizer bar graph down to zero."""
-            document["v-bar"].style.width = "0%"
-
-        def trigger_audio(note_name):
-            """Generates the frequency tone synthesizer engine signal."""
-            if ctx.state == "suspended":
-                ctx.resume()
-
-            freq = frequencies[note_name]
-            wave_selection = document["wave-type"].value
-
-            # Setup the audio signal chain
-            osc = ctx.createOscillator()
-            gain = ctx.createGain()
-            
-            osc.type = wave_selection
-            osc.frequency.value = freq
-            
-            osc.connect(gain)
-            gain.connect(ctx.destination)
-            
-            # Sound envelope timing (attack and decay fadeout)
-            now = ctx.currentTime
-            osc.start(now)
-            gain.gain.setValueAtTime(0.4, now)
-            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.5)
-            osc.stop(now + 0.5)
-
-            # Flash visualizer meter spike up
-            document["v-bar"].style.width = "85%"
-            timer.set_timeout(reset_visualizer, 100)
-
-        # --- Event Handling Rules ---
-
-        def mouse_click_play(event):
-            """Finds which note div element structural component path was clicked."""
-            target = event.target
-            # Bubble up to discover the target note node identifier if interior spans are clicked
-            while target and not target.classList.contains("key"):
-                target = target.parent
-            if target:
-                note = target.attrs["data-note"]
-                # Add UI lighting active class style property
-                target.classList.add("active")
-                timer.set_timeout(lambda: target.classList.remove("active"), 150)
-                trigger_audio(note)
-
-        def keyboard_down_play(event):
-            """Evaluates real-time desktop physical keyboard keystrokes."""
-            key_pressed = event.key.lower()
-            if key_pressed in key_mappings and key_pressed not in pressed_keys:
-                pressed_keys.add(key_pressed)
-                note = key_mappings[key_pressed]
+        // Stop Note function
+        function stopNote(frequency) {
+            if (activeOscillators[frequency]) {
+                const { osc, gainNode } = activeOscillators[frequency];
                 
-                # Fetch target note elements to attach style active classes
-                element_id = f"note-{note}"
-                document[element_id].classList.add("active")
-                trigger_audio(note)
+                // Release tail to smooth out audio cutoff
+                gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+                
+                setTimeout(() => {
+                    osc.stop();
+                    osc.disconnect();
+                    gainNode.disconnect();
+                }, 50);
 
-        def keyboard_up_stop(event):
-            """Removes active flags when a key press is released."""
-            key_released = event.key.lower()
-            if key_released in key_mappings:
-                pressed_keys.discard(key_released)
-                note = key_mappings[key_released]
-                element_id = f"note-{note}"
-                document[element_id].classList.remove("active")
+                delete activeOscillators[frequency];
+            }
+        }
 
-        # --- Initial Bindings Configuration Setup ---
-        
-        # Link every individual visual key structural element to mouse clicks
-        for note_id in frequencies.keys():
-            element_id = f"note-{note_id}"
-            document[element_id].bind("mousedown", mouse_click_play)
+        // Touch & Mouse Handling for iPad compatibility
+        function handleKeyStart(e) {
+            e.preventDefault();
+            const target = e.target;
+            if (target.classList.contains('key')) {
+                const freq = target.getAttribute('data-note');
+                target.classList.add('active');
+                playNote(parseFloat(freq));
+            }
+        }
 
-        # Bind operational events globally down onto the browser body object structure
-        document.bind("keydown", keyboard_down_play)
-        document.bind("keyup", keyboard_up_stop)
-    </script>
-</body>
-</html>
+        function handleKeyEnd(e) {
+            e.preventDefault();
+            const target = e.target;
+            if (target.classList.contains('key')) {
+                const freq = target.getAttribute('data-note');
+                target.classList.remove('active');
+                stopNote(parseFloat(freq));
+            }
+        }
+
+        // Multi-touch safe event handling
+        keyboard.addEventListener('touchstart', (e) => {
+            const touch = e.changedTouches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            if(element) handleKeyStart({ preventDefault: () => {}, target: element });
+        }, { passive: false });
+
+        keyboard.addEventListener('touchend', (e) => {
+            const touch = e.changedTouches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            if(element) handleKeyEnd({ preventDefault: () => {}, target: element });
+            }, { passive: false });
+// Desktop fallbacks for testing
+keyboard.addEventListener('mousedown', handleKeyStart);
+keyboard.addEventListener('mouseup', handleKeyEnd);
+keyboard.addEventListener('mouseleave', handleKeyEnd);
+// Oscilloscope Draw Loop
+function drawVisualizer() {
+requestAnimationFrame(drawVisualizer);
+if (!analyser) return;
+const bufferLength = analyser.frequencyBinCount;
+const dataArray = new Uint8Array(bufferLength);
+analyser.getByteTimeDomainData(dataArray);
+canvasCtx.fillStyle = '#121212';
+canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+canvasCtx.lineWidth = 3;
+canvasCtx.strokeStyle = '#00adb5';
+canvasCtx.beginPath();
+const sliceWidth = canvas.width / bufferLength;
+let x = 0;
+for (let i = 0; i < bufferLength; i++) {
+const v = dataArray[i] / 128.0;
+const y = (v * canvas.height) / 2;
+if (i === 0) {
+canvasCtx.moveTo(x, y);
+} else {
+canvasCtx.lineTo(x, y);
+}
+x += sliceWidth;
+}
+canvasCtx.lineTo(canvas.width, canvas.height / 2);
+canvasCtx.stroke();
+}
