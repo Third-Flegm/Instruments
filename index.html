@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
     <title>Dark Mode Synth Piano</title>
+
     <style>
         :root {
             --bg-color: #121212;
@@ -28,7 +32,14 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -48,7 +59,7 @@
             border-radius: 12px;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         }
 
         .control-group {
@@ -64,7 +75,8 @@
             color: #888;
         }
 
-        select, button {
+        select,
+        button {
             background: #333;
             color: var(--text-color);
             border: 1px solid #444;
@@ -75,7 +87,8 @@
             cursor: pointer;
         }
 
-        button:active, select:focus {
+        button:active,
+        select:focus {
             border-color: var(--accent-color);
         }
 
@@ -115,7 +128,7 @@
             background: #000;
             padding: 5px;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .key {
@@ -152,13 +165,14 @@
         }
     </style>
 </head>
-<body>
 
+<body>
     <div class="controls">
         <div class="control-group">
             <label>Audio Initialization</label>
             <button id="start-btn">Start Audio Context</button>
         </div>
+
         <div class="control-group">
             <label>Waveform Type</label>
             <select id="waveform-select">
@@ -176,65 +190,97 @@
 
     <div class="keyboard" id="keyboard">
         <!-- Piano Keys (1 Full Octave + C Crossover for demo) -->
-        <div class="key white" data-note="261.63"></div> <!-- C4 -->
-        <div class="key black" data-note="277.18"></div> <!-- C#4 -->
-        <div class="key white" data-note="293.66"></div> <!-- D4 -->
-        <div class="key black" data-note="311.13"></div> <!-- D#4 -->
-        <div class="key white" data-note="329.63"></div> <!-- E4 -->
-        <div class="key white" data-note="349.23"></div> <!-- F4 -->
-        <div class="key black" data-note="369.99"></div> <!-- F#4 -->
-        <div class="key white" data-note="392.00"></div> <!-- G4 -->
-        <div class="key black" data-note="415.30"></div> <!-- G#4 -->
-        <div class="key white" data-note="440.00"></div> <!-- A4 -->
-        <div class="key black" data-note="466.16"></div> <!-- A#4 -->
-        <div class="key white" data-note="493.88"></div> <!-- B4 -->
-        <div class="key white" data-note="523.25"></div> <!-- C5 -->
+        <div class="key white" data-note="261.63"></div>
+        <!-- C4 -->
+
+        <div class="key black" data-note="277.18"></div>
+        <!-- C#4 -->
+
+        <div class="key white" data-note="293.66"></div>
+        <!-- D4 -->
+
+        <div class="key black" data-note="311.13"></div>
+        <!-- D#4 -->
+
+        <div class="key white" data-note="329.63"></div>
+        <!-- E4 -->
+
+        <div class="key white" data-note="349.23"></div>
+        <!-- F4 -->
+
+        <div class="key black" data-note="369.99"></div>
+        <!-- F#4 -->
+
+        <div class="key white" data-note="392.00"></div>
+        <!-- G4 -->
+
+        <div class="key black" data-note="415.30"></div>
+        <!-- G#4 -->
+
+        <div class="key white" data-note="440.00"></div>
+        <!-- A4 -->
+
+        <div class="key black" data-note="466.16"></div>
+        <!-- A#4 -->
+
+        <div class="key white" data-note="493.88"></div>
+        <!-- B4 -->
+
+        <div class="key white" data-note="523.25"></div>
+        <!-- C5 -->
     </div>
 
     <script>
         // Audio Setup
         let audioCtx = null;
         let analyser = null;
-        let currentWaveform = 'sine';
+        let currentWaveform = "sine";
         const activeOscillators = {};
 
-        const startBtn = document.getElementById('start-btn');
-        const waveformSelect = document.getElementById('waveform-select');
-        const keyboard = document.getElementById('keyboard');
-        const canvas = document.getElementById('oscilloscope');
-        const canvasCtx = canvas.getContext('2d');
+        const startBtn = document.getElementById("start-btn");
+        const waveformSelect = document.getElementById("waveform-select");
+        const keyboard = document.getElementById("keyboard");
+        const canvas = document.getElementById("oscilloscope");
+        const canvasCtx = canvas.getContext("2d");
 
         // Resize Canvas dynamically
         function resizeCanvas() {
             canvas.width = canvas.clientWidth * window.devicePixelRatio;
             canvas.height = canvas.clientHeight * window.devicePixelRatio;
         }
-        window.addEventListener('resize', resizeCanvas);
+
+        window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
 
         // Initialize Web Audio
-        startBtn.addEventListener('click', () => {
+        startBtn.addEventListener("click", () => {
             if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioCtx = new (
+                    window.AudioContext ||
+                    window.webkitAudioContext
+                )();
+
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 2048;
                 analyser.connect(audioCtx.destination);
+
                 startBtn.textContent = "Audio Active";
                 startBtn.style.background = "#28a745";
+
                 drawVisualizer();
-            } else if (audioCtx.state === 'suspended') {
+            } else if (audioCtx.state === "suspended") {
                 audioCtx.resume();
             }
         });
 
-        waveformSelect.addEventListener('change', (e) => {
+        waveformSelect.addEventListener("change", (e) => {
             currentWaveform = e.target.value;
         });
 
         // Play Note function
         function playNote(frequency) {
             if (!audioCtx) return;
-            
+
             // If already playing, do nothing
             if (activeOscillators[frequency]) return;
 
@@ -242,28 +288,45 @@
             const gainNode = audioCtx.createGain();
 
             osc.type = currentWaveform;
-            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            
+            osc.frequency.setValueAtTime(
+                frequency,
+                audioCtx.currentTime
+            );
+
             // Soft envelope to prevent severe clicks
             gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.02);
+            gainNode.gain.linearRampToValueAtTime(
+                0.4,
+                audioCtx.currentTime + 0.02
+            );
 
             osc.connect(gainNode);
             gainNode.connect(analyser);
             osc.start();
 
-            activeOscillators[frequency] = { osc, gainNode };
+            activeOscillators[frequency] = {
+                osc,
+                gainNode
+            };
         }
 
         // Stop Note function
         function stopNote(frequency) {
             if (activeOscillators[frequency]) {
-                const { osc, gainNode } = activeOscillators[frequency];
-                
+                const { osc, gainNode } =
+                    activeOscillators[frequency];
+
                 // Release tail to smooth out audio cutoff
-                gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
-                
+                gainNode.gain.setValueAtTime(
+                    gainNode.gain.value,
+                    audioCtx.currentTime
+                );
+
+                gainNode.gain.linearRampToValueAtTime(
+                    0,
+                    audioCtx.currentTime + 0.05
+                );
+
                 setTimeout(() => {
                     osc.stop();
                     osc.disconnect();
@@ -277,64 +340,122 @@
         // Touch & Mouse Handling for iPad compatibility
         function handleKeyStart(e) {
             e.preventDefault();
+
             const target = e.target;
-            if (target.classList.contains('key')) {
-                const freq = target.getAttribute('data-note');
-                target.classList.add('active');
+
+            if (target.classList.contains("key")) {
+                const freq = target.getAttribute("data-note");
+
+                target.classList.add("active");
                 playNote(parseFloat(freq));
             }
         }
 
         function handleKeyEnd(e) {
             e.preventDefault();
+
             const target = e.target;
-            if (target.classList.contains('key')) {
-                const freq = target.getAttribute('data-note');
-                target.classList.remove('active');
+
+            if (target.classList.contains("key")) {
+                const freq = target.getAttribute("data-note");
+
+                target.classList.remove("active");
                 stopNote(parseFloat(freq));
             }
         }
 
         // Multi-touch safe event handling
-        keyboard.addEventListener('touchstart', (e) => {
-            const touch = e.changedTouches[0];
-            const element = document.elementFromPoint(touch.clientX, touch.clientY);
-            if(element) handleKeyStart({ preventDefault: () => {}, target: element });
-        }, { passive: false });
+        keyboard.addEventListener(
+            "touchstart",
+            (e) => {
+                const touch = e.changedTouches[0];
 
-        keyboard.addEventListener('touchend', (e) => {
-            const touch = e.changedTouches[0];
-            const element = document.elementFromPoint(touch.clientX, touch.clientY);
-            if(element) handleKeyEnd({ preventDefault: () => {}, target: element });
-            }, { passive: false });
-// Desktop fallbacks for testing
-keyboard.addEventListener('mousedown', handleKeyStart);
-keyboard.addEventListener('mouseup', handleKeyEnd);
-keyboard.addEventListener('mouseleave', handleKeyEnd);
-// Oscilloscope Draw Loop
-function drawVisualizer() {
-requestAnimationFrame(drawVisualizer);
-if (!analyser) return;
-const bufferLength = analyser.frequencyBinCount;
-const dataArray = new Uint8Array(bufferLength);
-analyser.getByteTimeDomainData(dataArray);
-canvasCtx.fillStyle = '#121212';
-canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-canvasCtx.lineWidth = 3;
-canvasCtx.strokeStyle = '#00adb5';
-canvasCtx.beginPath();
-const sliceWidth = canvas.width / bufferLength;
-let x = 0;
-for (let i = 0; i < bufferLength; i++) {
-const v = dataArray[i] / 128.0;
-const y = (v * canvas.height) / 2;
-if (i === 0) {
-canvasCtx.moveTo(x, y);
-} else {
-canvasCtx.lineTo(x, y);
-}
-x += sliceWidth;
-}
-canvasCtx.lineTo(canvas.width, canvas.height / 2);
-canvasCtx.stroke();
-}
+                const element = document.elementFromPoint(
+                    touch.clientX,
+                    touch.clientY
+                );
+
+                if (element) {
+                    handleKeyStart({
+                        preventDefault: () => {},
+                        target: element
+                    });
+                }
+            },
+            { passive: false }
+        );
+
+        keyboard.addEventListener(
+            "touchend",
+            (e) => {
+                const touch = e.changedTouches[0];
+
+                const element = document.elementFromPoint(
+                    touch.clientX,
+                    touch.clientY
+                );
+
+                if (element) {
+                    handleKeyEnd({
+                        preventDefault: () => {},
+                        target: element
+                    });
+                }
+            },
+            { passive: false }
+        );
+
+        // Desktop fallbacks for testing
+        keyboard.addEventListener("mousedown", handleKeyStart);
+        keyboard.addEventListener("mouseup", handleKeyEnd);
+        keyboard.addEventListener("mouseleave", handleKeyEnd);
+
+        // Oscilloscope Draw Loop
+        function drawVisualizer() {
+            requestAnimationFrame(drawVisualizer);
+
+            if (!analyser) return;
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            analyser.getByteTimeDomainData(dataArray);
+
+            canvasCtx.fillStyle = "#121212";
+            canvasCtx.fillRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            canvasCtx.lineWidth = 3;
+            canvasCtx.strokeStyle = "#00adb5";
+            canvasCtx.beginPath();
+
+            const sliceWidth = canvas.width / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = (v * canvas.height) / 2;
+
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            canvasCtx.lineTo(
+                canvas.width,
+                canvas.height / 2
+            );
+
+            canvasCtx.stroke();
+        }
+    </script>
+</body>
+</html>
